@@ -5,6 +5,7 @@ import argparse
 OS_NAME = "linux"
 DEFAULT_TAG = "latest"
 OFFICIAL_IMAGE_PATH = "library/"
+REPOSITORY_URL = "https://registry.hub.docker.com/v2/repositories/"
 
 class Image:
     def __init__(self, name, digest):
@@ -20,13 +21,13 @@ class Image:
         return self.digest == other.digest
 
 def parseArguments():
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser(description='Retrieve tags of a docker image.')
     parser.add_argument('image', metavar="image[:tag]", help="name of the image to query (if tag is included, it will be used for querying)")
-    parser.add_argument('-c', '--browse-count', metavar='COUNT', type=int, default=100, help="count of tags to browse in the target repository (default is 100)")
+    parser.add_argument('-c', '--browse-count', dest='examineCount', metavar='COUNT', type=int, default=100, help="count of tags to browse in the target repository (default is 100)")
     return parser.parse_args()
 
 def buildBaseUrl(image):
-    return f"https://registry.hub.docker.com/v2/repositories/{image if '/' in image else f'{OFFICIAL_IMAGE_PATH}{image}'}/"
+    return f"{REPOSITORY_URL}{image if '/' in image else f'{OFFICIAL_IMAGE_PATH}{image}'}/"
 
 def checkImageExistance(image, baseUrl):
     print(f'Checking existance of image: \'{image}\'...')
@@ -48,10 +49,18 @@ def determineRequiredImage(image, tagname, baseUrl):
     print(f'Tag \'{tagname}\' not found in latest 100 tags, exitting.')
     sys.exit()
 
-def listTags(image, baseUrl, required):
+def listTags(image, baseUrl, required, examineCount):
     print(f'Searching tags for image \'{required.digest[7:15]}\':')
-    response = requests.get(f"{baseUrl}tags/?page_size=100&page=1")
-    data = response.json()
+    pageSize = 100 if examineCount > 100 else examineCount
+    pageCount = examineCount//pageSize + (1 if examineCount%pageSize > 0 else 0)
+    listedCount = 0
+    for i in range(pageCount):
+        response = requests.get(f"{baseUrl}tags/?page_size={pageSize}&page={i+1}")
+        data = response.json()
+        listedCount += _listTags(image, required, data)
+    print(f'Listed {listedCount} tag(s).')
+
+def _listTags(image, required, data):
     count = 0
     for r in data['results']:
         for i in r['images']:
@@ -60,7 +69,7 @@ def listTags(image, baseUrl, required):
                 if (current.compareDigests(required)):
                     count += 1
                     print(f' + {image}:{current.name}')
-    print(f'Listed {count} tag(s).')
+    return count
 
 def main():
     args = parseArguments()
@@ -70,6 +79,6 @@ def main():
 
     checkImageExistance(image, baseUrl)
     required = determineRequiredImage(image, tagname, baseUrl)
-    listTags(image, baseUrl, required)
+    listTags(image, baseUrl, required, args.examineCount)
 
 main()
