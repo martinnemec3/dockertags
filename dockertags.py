@@ -6,6 +6,7 @@ OS_NAME = "linux"
 DEFAULT_TAG = "latest"
 OFFICIAL_IMAGE_PATH = "library/"
 REPOSITORY_URL = "https://registry.hub.docker.com/v2/repositories/"
+PAGE_SIZE = 100
 
 class Image:
     def __init__(self, name, digest):
@@ -23,7 +24,7 @@ class Image:
 def parseArguments():
     parser = argparse.ArgumentParser(description='Retrieve tags of a docker image.')
     parser.add_argument('image', metavar="image[:tag]", help="name of the image to query (if tag is included, it will be used for querying)")
-    parser.add_argument('-c', '--browse-count', dest='examineCount', metavar='COUNT', type=int, default=100, help="count of tags to browse in the target repository (default is 100)")
+    parser.add_argument('-p', '--pages', dest='pages', metavar='pages', type=int, default=1, help="number of pages to examine (default is 1)")
     return parser.parse_args()
 
 def buildBaseUrl(image):
@@ -49,13 +50,11 @@ def determineRequiredImage(image, tagname, baseUrl):
     print(f'Tag \'{tagname}\' not found in latest 100 tags, exitting.')
     sys.exit()
 
-def listTags(image, baseUrl, required, examineCount):
+def listTags(image, baseUrl, required, pages):
     print(f'Searching tags for image \'{required.digest[7:15]}\':')
-    pageSize = 100 if examineCount > 100 else examineCount
-    pageCount = examineCount//pageSize + (1 if examineCount%pageSize > 0 else 0)
     listedCount = 0
-    for i in range(pageCount):
-        response = requests.get(f"{baseUrl}tags/?page_size={pageSize}&page={i+1}")
+    for i in range(pages):
+        response = requests.get(f"{baseUrl}tags/?page_size={PAGE_SIZE}&page={i+1}")
         data = response.json()
         listedCount += _listTags(image, required, data)
     print(f'Listed {listedCount} tag(s).')
@@ -79,6 +78,6 @@ def main():
 
     checkImageExistance(image, baseUrl)
     required = determineRequiredImage(image, tagname, baseUrl)
-    listTags(image, baseUrl, required, args.examineCount)
+    listTags(image, baseUrl, required, args.pages)
 
 main()
