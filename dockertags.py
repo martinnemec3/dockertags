@@ -55,7 +55,7 @@ def determineRequiredImage(image, tagname, baseUrl):
     for i in data['images']:
             if (i['os'] == OS_NAME):
                 return Image(data['name'], i['digest'])
-    print(f'Tag \'{tagname}\' not found in latest 100 tags, exitting.')
+    print(f'Tag \'{tagname}\' for system {OS_NAME} not found, exitting.')
     sys.exit()
 
 def listTags(image, baseUrl, required, pages):
