@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Dockertags is a simple script that identifies all tags that an image has.
+   It's expected that you specify an image name together with a tag you want to search for ('latest' is default).
+   The result is a list of tags referencing the same image hash as the one provided.
+"""
+
 import requests
 import sys
 import argparse
@@ -22,7 +30,7 @@ class Image:
         return self.digest == other.digest
 
 def parseArguments():
-    parser = argparse.ArgumentParser(description='Retrieve tags of a docker image.')
+    parser = argparse.ArgumentParser(description='Retrieve tags for a docker image hash.')
     parser.add_argument('image', metavar="image[:tag]", help="name of the image to query (if tag is included, it will be used for querying)")
     parser.add_argument('-p', '--pages', dest='pages', metavar='pages', type=int, default=1, help="number of pages to examine (default is 1)")
     return parser.parse_args()
